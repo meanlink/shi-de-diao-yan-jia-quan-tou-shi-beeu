@@ -10,6 +10,8 @@ class Report(Base):
     interval_seconds: Mapped[int]
     next_run: Mapped[float] = mapped_column(Double)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    # 双盲复核上线前建立的旧计划：归档（投递）前必须补完一次双盲复核
+    review_pending: Mapped[bool] = mapped_column(Boolean, default=False)
 class Delivery(Base):
     __tablename__ = 'deliveries'
     id: Mapped[int] = mapped_column(primary_key=True)

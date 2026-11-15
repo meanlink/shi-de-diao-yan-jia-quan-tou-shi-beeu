@@ -22,8 +22,5 @@ def detail(id:int,db=Depends(get_db),u=Depends(current_user)):
     return job_dict(j)
 @router.post('/{id}/approve')
 def approve(id:int,db=Depends(get_db),u=Depends(admin_only)):
-    j=db.get(Job,id)
-    if not j: raise HTTPException(404,'分析任务不存在')
-    if j.status!='completed':raise HTTPException(409,'仅已完成结果可以批准')
-    j.approved=True; record(db,u.email,'job.approve',{'id':id}); db.commit()
-    return job_dict(j)
+    # 双盲复核上线后，单人批准入口关闭；新结论须在结果页送交双盲复核，两票通过方可分发
+    raise HTTPException(403,'单人批准已停用：请在结果页送交双盲复核，两名非发起人复核人两票通过后自动批准')

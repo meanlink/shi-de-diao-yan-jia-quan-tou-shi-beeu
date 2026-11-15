@@ -31,8 +31,11 @@ def tick():
     for job_id in queued:execute(job_id)
     with Session() as db:
         for r in db.scalars(select(Report).where(Report.enabled==True,Report.next_run<=time.time())):
+            before_pending=getattr(r,'review_pending',False)
             d=deliver(db,r)
             if d:record(db,'worker','report.delivered',{'id':r.id,'delivery':d.id})
+            elif before_pending and getattr(r,'review_pending',False):
+                record(db,'worker','report.blocked_pending_review',{'id':r.id,'job_id':r.job_id})
         db.commit()
 def main():
     r=Redis.from_url(REDIS_URL,socket_timeout=3)

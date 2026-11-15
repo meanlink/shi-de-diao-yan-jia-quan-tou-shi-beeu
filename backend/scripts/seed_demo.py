@@ -10,8 +10,14 @@ from src.utils.serialization import checksum
 def seed():
     migrate()
     with Session() as db:
-        for role,name in [('admin','林知 · 业务负责人'),('analyst','陈舟 · 分析员'),('viewer','周禾 · 观察员')]:
-            email=role+'@demo.local'
+        # 双盲复核需要两名非发起人复核人 + 一名未参与的仲裁管理员，故补充演示账号
+        for email,role,name in [
+            ('admin@demo.local','admin','林知 · 业务负责人'),
+            ('admin2@demo.local','admin','高岑 · 复核主管'),
+            ('analyst@demo.local','analyst','陈舟 · 分析员'),
+            ('analyst2@demo.local','analyst','沈砚 · 分析员'),
+            ('viewer@demo.local','viewer','周禾 · 观察员'),
+        ]:
             if not db.scalar(select(User).where(User.email==email)):
                 db.add(User(email=email,name=name,role=role,password=hash_password('Demo123!')))
         db.flush()
@@ -26,9 +32,9 @@ def seed():
             result=analyze(d.records,params)
             json.dumps(result,ensure_ascii=False,allow_nan=False)
             admin=db.scalar(select(User).where(User.role=='admin'))
-            j=Job(name='基线复核 · '+m['name'],dataset_id=d.id,params=params,status='completed',result=result,created_by=admin.id,created_at=time.time()-3600,finished_at=time.time()-3595,approved=True)
+            j=Job(name='基线复核 · '+m['name'],dataset_id=d.id,params=params,status='completed',result=result,created_by=admin.id,created_at=time.time()-3600,finished_at=time.time()-3595,approved=True,legacy_approved=True)
             db.add(j);db.flush()
-            r=Report(name='每日业务复核简报',job_id=j.id,destination='业务复核组 · 本地收件箱',interval_seconds=86400,next_run=time.time()+86400,enabled=True)
+            r=Report(name='每日业务复核简报',job_id=j.id,destination='业务复核组 · 本地收件箱',interval_seconds=86400,next_run=time.time()+86400,enabled=True,review_pending=True)
             db.add(r);db.flush();deliver(db,r)
             db.add(Audit(actor='seed',action='demo.baseline',detail={'dataset':d.id},at=time.time()))
         db.commit()
